@@ -1,6 +1,4 @@
 export class UserEntity {
-  // @ts-expect-error
-  public username: string;
-  // @ts-expect-error
-  public password: string;
+  public userId!: string;
+  public password!: string;
 }

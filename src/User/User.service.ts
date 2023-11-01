@@ -3,32 +3,27 @@ import { JwtUtils } from "../utilities/JwtUtils/JwtUtils";
 import { UserEntity } from "./User.entity";
 import { UserRepo } from "./User.repo";
 import * as bcrypt from "bcryptjs";
+import { Constants } from "../types/constants";
 
 const JWT_MAX_AGE = Number(process.env.JWT_MAX_AGE) || undefined;
-const JWT = "jwt";
 
 export class UserService extends UserEntity {
-  constructor(
-    private readonly userRepo: UserRepo,
-    private readonly jwtUtils: JwtUtils
-  ) {
+  constructor(private readonly userRepo: UserRepo) {
     super();
   }
 
   async login(
-    username: string,
+    userId: string,
     enteredPassword: string,
     response: Response
   ): Promise<void> {
-    const user = await this.userRepo
-      .getOne({ username })
-      .catch((err: Error) => {
-        throw new Error(err.message);
-      });
+    const user = await this.userRepo.getOne({ userId }).catch((err: Error) => {
+      throw new Error(err.message);
+    });
 
     if (!user) {
       response.status(400).send();
-      throw new Error("Incorrect username");
+      throw new Error("Incorrect userId");
     }
     if (!this.validateUser(enteredPassword, user.password)) {
       response.status(400).send();
@@ -36,9 +31,9 @@ export class UserService extends UserEntity {
     }
 
     const { password, ...userData } = user;
-    const access_token = await this.jwtUtils.generateToken(userData);
+    const access_token = JwtUtils.generateToken(userData);
 
-    response.cookie(JWT, access_token, {
+    response.cookie(Constants.JWT, access_token, {
       maxAge: JWT_MAX_AGE,
       httpOnly: true,
     });
@@ -49,29 +44,29 @@ export class UserService extends UserEntity {
   }
 
   async logout(response: Response) {
-    response.cookie(JWT, "", {
+    response.cookie(Constants.JWT, "", {
       maxAge: 1,
       httpOnly: true,
     });
   }
 
   async signUp(
-    username: string,
+    userId: string,
     enteredPassword: string,
     response: Response
   ): Promise<void> {
-    const isUsernameTaken = Boolean(await this.userRepo.getOne({ username }));
+    const isuserIdTaken = Boolean(await this.userRepo.getOne({ userId }));
 
-    if (isUsernameTaken) {
+    if (isuserIdTaken) {
       response.status(400).send();
-      throw new Error("Username already exists");
+      throw new Error("userId already exists");
     }
 
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(enteredPassword, salt);
 
     const { acknowledged: userAcknowledged } = await this.userRepo.create({
-      username,
+      userId: userId,
       password: hash,
     });
 
@@ -80,6 +75,6 @@ export class UserService extends UserEntity {
       throw new Error("Internal server error");
     }
 
-    await this.login(username, enteredPassword, response);
+    await this.login(userId, enteredPassword, response);
   }
 }

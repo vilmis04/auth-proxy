@@ -1,31 +1,14 @@
 import { Request } from "express";
-import { verify, JsonWebTokenError, sign } from "jsonwebtoken";
+import { verify, sign } from "jsonwebtoken";
 
 const SECRET_KEY = process.env.SECRET_KEY || "";
 
 export class JwtUtils {
-  public getUser(req: Request) {
-    const token = req.cookies.jwt;
-    const user = verify(token, SECRET_KEY);
-
-    if (user == null) {
-      throw new JsonWebTokenError("Unauthorized");
-    }
-
-    return user;
+  public static verifyToken(token: string) {
+    return verify(token, SECRET_KEY);
   }
 
-  public verifyToken(token: string) {
-    const user = verify(token, SECRET_KEY);
-
-    if (user == null) {
-      throw new JsonWebTokenError("Unauthorized");
-    }
-
-    return user;
-  }
-
-  async generateToken(data: string | object, maxAge?: number): Promise<string> {
+  public static generateToken(data: string | object, maxAge?: number): string {
     const token = sign(data, SECRET_KEY, {
       expiresIn: maxAge,
     });
@@ -33,7 +16,7 @@ export class JwtUtils {
     return token;
   }
 
-  public getAuthStatus(req: Request): boolean {
+  public static getAuthStatus(req: Request): boolean {
     const token = req.cookies?.jwt;
     if (!token) return false;
     const user = verify(token, SECRET_KEY);

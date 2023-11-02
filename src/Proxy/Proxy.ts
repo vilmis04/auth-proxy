@@ -2,7 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { Constants } from "../types/constants";
 import { JwtUtils } from "../utilities/JwtUtils/JwtUtils";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { Prefixes } from "../types/constants";
+
+const AUTH_TOKEN = process.env.AUTH_TOKEN || "";
 
 export class Proxy {
   public static authMiddleware = (
@@ -14,9 +15,7 @@ export class Proxy {
     try {
       const userId = JwtUtils.verifyToken(token);
 
-      request.headers.authorization = `Basic ${btoa(
-        process.env.TARGET_AUTH || ""
-      )}`;
+      request.headers.authorization = `Basic ${btoa(AUTH_TOKEN)}`;
       request.headers.userId = `${userId}`;
     } catch (error) {
       response.status(401).send("Unauthorized");
@@ -29,7 +28,6 @@ export class Proxy {
     return createProxyMiddleware({
       target: process.env.PROXY_TARGET,
       changeOrigin: true,
-      pathRewrite: (path) => path.replace(Prefixes.PROXY, ""),
     });
   }
 }

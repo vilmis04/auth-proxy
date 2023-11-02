@@ -8,12 +8,8 @@ export enum Prefixes {
   PROXY = "/proxy",
 }
 
-export enum Resources {
-  HEALTH = "health",
-}
-
 export enum URIs {
-  HEALTH = `${Prefixes.GLOBAL_PREFIX}/${Resources.HEALTH}`,
+  GLOBAL = `${Prefixes.GLOBAL_PREFIX}`,
   AUTH = `${Prefixes.GLOBAL_PREFIX}${Prefixes.AUTH}`,
   PROXY = `${Prefixes.GLOBAL_PREFIX}${Prefixes.PROXY}`,
 }

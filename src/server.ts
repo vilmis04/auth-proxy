@@ -5,6 +5,7 @@ import cors from "cors";
 import { UserController } from "./User/User.controller";
 import { Proxy } from "./Proxy/Proxy";
 import { URIs } from "./types/constants";
+import { paths } from "./paths";
 
 dotenv.config();
 
@@ -13,27 +14,30 @@ const PORT = process.env.PORT || 8000;
 
 app.use(morgan("tiny"));
 app.use(cors());
-app.use(URIs.PROXY, Proxy.authMiddleware);
-app.use(URIs.PROXY, Proxy.proxyMiddleware());
+app.use(express.json());
 
-app.get(URIs.HEALTH, (_req: Request, res: Response) => {
+app.get(paths.health, (_req: Request, res: Response) => {
   res.status(200).send("OK");
 });
 
 // TODO:
-app.post(`${URIs.AUTH}/signup`, (req: Request, res: Response) => {
+app.post(paths.signup, (req: Request, res: Response) => {
   new UserController(req, res).signup();
 });
 
 // TODO:
-app.post(`${URIs.AUTH}/login`, (_req: Request, res: Response) => {
-  res.status(200).send("OK");
+app.post(paths.login, (req: Request, res: Response) => {
+  new UserController(req, res).login();
 });
 
 // TODO:
-app.get(`${URIs.AUTH}/logout`, (_req: Request, res: Response) => {
-  res.status(200).send("OK");
+app.get(paths.logout, (req: Request, res: Response) => {
+  new UserController(req, res).logout();
 });
+
+// Keep these in the bottom of the file so auth paths matched first
+app.use(URIs.GLOBAL, Proxy.authMiddleware);
+app.use(URIs.GLOBAL, Proxy.proxyMiddleware());
 
 app.listen(PORT, () => {
   console.log(`Server is live at http://localhost:${PORT}`);

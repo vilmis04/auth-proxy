@@ -1,3 +1,5 @@
+# Environment config
+
 config file for env vars:
 
 ```
@@ -8,3 +10,19 @@ PORT={defaults to 8080}
 PROXY_TARGET={where to forward the validated request}
 AUTH_TOKEN={<clientId>:<clientKey>}
 ```
+
+Add these to configure UI:
+
+```
+HEADER={valid html}
+```
+
+# Roadmap
+
+> Soon
+
+- Standard UI
+
+> Later
+
+- Configurable standard UI

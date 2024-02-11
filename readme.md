@@ -14,7 +14,8 @@ AUTH_TOKEN={<clientId>:<clientKey>}
 Add these to configure UI:
 
 ```
-HEADER={valid html}
+LOGIN_HEADER={valid html}
+SIGN_UP_HEADER={valid html}
 ```
 
 # Roadmap

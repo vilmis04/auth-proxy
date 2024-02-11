@@ -6,7 +6,8 @@ import { UserController } from "./User/User.controller";
 import { Proxy } from "./Proxy/Proxy";
 import { URIs } from "./types/constants";
 import { paths } from "./paths";
-import { renderAuthScreen } from "./UI";
+import { renderLoginUI } from "./UI/loginUI";
+import { renderSignUpUI } from "./UI/signUpUI";
 
 dotenv.config();
 
@@ -17,8 +18,12 @@ app.use(morgan("tiny"));
 app.use(cors());
 app.use(express.json());
 
-app.get(paths.authUI, (_req: Request, res: Response) => {
-  res.send(renderAuthScreen());
+app.get(paths.loginUI, (_req: Request, res: Response) => {
+  res.send(renderLoginUI());
+});
+
+app.get(paths.signUpUI, (_req: Request, res: Response) => {
+  res.send(renderSignUpUI());
 });
 
 app.get(paths.health, (_req: Request, res: Response) => {

@@ -1,4 +1,4 @@
-package jwtUtils
+package accessToken
 
 import "testing"
 
@@ -6,7 +6,7 @@ var jwtString = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0In0.eYAVln
 
 func TestCreateJWT(t *testing.T) {
 	expected := jwtString
-	token, err := CreateJWT("test")
+	token, err := Create("test")
 	if err != nil {
 		t.Errorf("received error but expected a token")
 	}
@@ -17,7 +17,7 @@ func TestCreateJWT(t *testing.T) {
 
 func TestValidateJWT(t *testing.T) {
 	expected := "test"
-	user, err := ValidateJWT(jwtString)
+	user, err := Validate(jwtString)
 	if err != nil {
 		t.Error(err)
 	}

@@ -1,4 +1,4 @@
-package jwtUtils
+package accessToken
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 
 var key []byte = []byte(os.Getenv("jwt_key"))
 
-func CreateJWT(username string) (*string, error) {
+func Create(username string) (*string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"sub": username,
@@ -22,8 +22,8 @@ func CreateJWT(username string) (*string, error) {
 	return &signedToken, nil
 }
 
-func ValidateJWT(jwtCookie string) (*string, error) {
-	token, err := jwt.Parse(jwtCookie, func(t *jwt.Token) (interface{}, error) {
+func Validate(tokenCookie string) (*string, error) {
+	token, err := jwt.Parse(tokenCookie, func(t *jwt.Token) (interface{}, error) {
 		return key, nil
 	})
 	if err != nil {

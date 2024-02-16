@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const MONTH int = 30 * 24 * 3600
+
 type Controller struct {
 	service   *Service
 	authGroup *gin.RouterGroup
@@ -35,7 +37,7 @@ func (c *Controller) Use() {
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ctx.SetCookie("access_token", *token, 30*24*3600, "/", "/", true, true)
+		ctx.SetCookie("access_token", *token, MONTH, "/", "/", true, true)
 		ctx.Writer.WriteHeader(http.StatusCreated)
 	})
 

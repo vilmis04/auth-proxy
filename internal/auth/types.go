@@ -2,6 +2,6 @@ package auth
 
 type signUpRequest struct {
 	Username       string `json:"username"`
-	RepeatUsername string `json:"repeatUsername"`
+	RepeatPassword string `json:"repeatPassword"`
 	Password       string `json:"password"`
 }

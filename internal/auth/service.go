@@ -2,15 +2,21 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"slices"
 
 	"github.com/vilmis04/auth-proxy/internal/accessToken"
 )
 
-type Service struct{}
+type Service struct {
+	Repo
+}
 
 func NewService() *Service {
-	return &Service{}
+	return &Service{
+		Repo: *NewRepo(),
+	}
 }
 
 func (s *Service) getIsAuthorized(token string) bool {
@@ -25,6 +31,23 @@ func (s *Service) getIsAuthorized(token string) bool {
 	return true
 }
 
+func (s *Service) validateSignUpRequest(body signUpRequest) error {
+	if body.Password != body.RepeatPassword {
+		return fmt.Errorf("passwords do not match")
+	}
+
+	names, err := s.Repo.GetUserList()
+	if err != nil {
+		return err
+	}
+
+	if slices.Contains(*names, body.Username) {
+		return fmt.Errorf("username %v is already taken", body.Username)
+	}
+
+	return nil
+}
+
 func (s *Service) signUp(request *http.Request) (*string, error) {
 	var body signUpRequest
 	err := json.NewDecoder(request.Body).Decode(&body)
@@ -32,5 +55,20 @@ func (s *Service) signUp(request *http.Request) (*string, error) {
 		return nil, err
 	}
 
-	return nil, nil
+	err = s.validateSignUpRequest(body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.Repo.createUser(body)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := accessToken.Create(body.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
 }

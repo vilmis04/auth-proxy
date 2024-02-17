@@ -41,4 +41,13 @@ func (c *Controller) Use() {
 		ctx.Writer.WriteHeader(http.StatusCreated)
 	})
 
+	c.authGroup.POST("login", func(ctx *gin.Context) {
+		token, err := c.service.login(ctx.Request)
+		if err != nil {
+			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		ctx.SetCookie("access_token", *token, MONTH, "/", "/", true, true)
+		ctx.Writer.WriteHeader(http.StatusOK)
+	})
 }

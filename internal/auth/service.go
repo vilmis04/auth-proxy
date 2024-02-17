@@ -72,3 +72,32 @@ func (s *Service) signUp(request *http.Request) (*string, error) {
 
 	return token, nil
 }
+
+func (s *Service) checkUser(body *loginRequest) error {
+	user, err := s.Repo.getUser(body.Username, body.Password)
+	if err != nil {
+		return err
+	}
+
+	return ValidatePassword(body.Password, user.Password)
+}
+
+func (s *Service) login(request *http.Request) (*string, error) {
+	var body loginRequest
+	err := json.NewDecoder(request.Body).Decode(&body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.checkUser(&body)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := accessToken.Create(body.Username)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}

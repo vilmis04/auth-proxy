@@ -66,3 +66,25 @@ func (r *Repo) createUser(body signUpRequest) error {
 
 	return nil
 }
+
+func (r *Repo) getUser(username string, password string) (*User, error) {
+	db, err := r.ConnectToDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	query := fmt.Sprintf(`
+	SELECT * FROM %v
+	WHERE username=$1`, r.Table)
+
+	var id int
+	var user User = User{}
+	row := db.QueryRow(query, username)
+	err = row.Scan(&id, &(user.Username), &(user.Password))
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

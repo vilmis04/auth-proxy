@@ -50,4 +50,9 @@ func (c *Controller) Use() {
 		ctx.SetCookie("access_token", *token, MONTH, "/", "/", true, true)
 		ctx.Writer.WriteHeader(http.StatusOK)
 	})
+
+	c.authGroup.POST("logout", func(ctx *gin.Context) {
+		ctx.SetCookie("access_token", "", 0, "/", "/", true, true)
+		ctx.Writer.WriteHeader(http.StatusOK)
+	})
 }

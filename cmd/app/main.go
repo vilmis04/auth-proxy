@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/vilmis04/auth-proxy/internal/auth"
+	"github.com/vilmis04/auth-proxy/internal/proxy"
 )
 
 func loadEnvVars() {
@@ -25,7 +26,9 @@ func init() {
 
 func main() {
 	server := gin.Default()
-	auth.NewController(server).Use()
+	apiRoutes := server.Group("api")
+	auth.NewController(apiRoutes).Use()
+	server.Use(proxy.AuthMiddleware(), proxy.ProxyMiddleware())
 
 	server.Run()
 }

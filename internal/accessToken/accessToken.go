@@ -7,6 +7,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+const ACCESS_TOKEN = "access_token"
+
 var key []byte = []byte(os.Getenv("jwt_key"))
 
 func Create(username string) (*string, error) {

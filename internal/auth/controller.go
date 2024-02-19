@@ -2,27 +2,31 @@ package auth
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vilmis04/auth-proxy/internal/accessToken"
 )
 
 const MONTH int = 30 * 24 * 3600
+
+var BASE_URL = os.Getenv("BASE_URL")
 
 type Controller struct {
 	service   *Service
 	authGroup *gin.RouterGroup
 }
 
-func NewController(server *gin.Engine) *Controller {
+func NewController(apiGroup *gin.RouterGroup) *Controller {
 	return &Controller{
 		service:   NewService(),
-		authGroup: server.Group("auth"),
+		authGroup: apiGroup.Group("auth"),
 	}
 }
 
 func (c *Controller) Use() {
 	c.authGroup.GET("is-authorized", func(ctx *gin.Context) {
-		jwtCookie, err := ctx.Request.Cookie("jwt")
+		jwtCookie, err := ctx.Request.Cookie(accessToken.ACCESS_TOKEN)
 		if err != nil {
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
 			return
@@ -37,7 +41,7 @@ func (c *Controller) Use() {
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ctx.SetCookie("access_token", *token, MONTH, "/", "/", true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
 		ctx.Writer.WriteHeader(http.StatusCreated)
 	})
 
@@ -47,12 +51,12 @@ func (c *Controller) Use() {
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ctx.SetCookie("access_token", *token, MONTH, "/", "/", true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
 		ctx.Writer.WriteHeader(http.StatusOK)
 	})
 
 	c.authGroup.POST("logout", func(ctx *gin.Context) {
-		ctx.SetCookie("access_token", "", 0, "/", "/", true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, "", 0, "/", BASE_URL, true, true)
 		ctx.Writer.WriteHeader(http.StatusOK)
 	})
 }

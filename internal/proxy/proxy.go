@@ -27,19 +27,22 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		cookie, err := ctx.Request.Cookie(accessToken.ACCESS_TOKEN)
 		if err != nil {
-			log.Printf("[Auth-middleware] %v \n", err)
+			log.Printf("[AuthMiddleware] ERR %v \n", err)
 			ctx.Writer.WriteHeader(http.StatusUnauthorized)
+			ctx.Abort()
 			return
 		}
 
 		user, err := accessToken.Validate(cookie.Value)
 		if err != nil {
-			log.Printf("[Auth-middleware] %v \n", err)
+			log.Printf("[AuthMiddleware] ERR %v \n", err)
 			ctx.Writer.WriteHeader(http.StatusUnauthorized)
+			ctx.Abort()
 			return
 		}
 
 		ctx.Request.Header.Set(USER, *user)
+		log.Printf("[AuthMiddleware] authorized for: %v", *user)
 		ctx.Next()
 	}
 }
@@ -48,18 +51,21 @@ func ProxyMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		user := ctx.Request.Header.Get(USER)
 		if user == "" {
-			log.Printf("[Proxy-middleware] user name in header: %v \n", user)
+			log.Printf("[ProxyMiddleware] ERR user name in header: %v \n", user)
 			ctx.Writer.WriteHeader(http.StatusUnauthorized)
+			ctx.Abort()
 			return
 		}
 
 		proxy, err := NewReverseProxy()
 		if err != nil {
-			log.Printf("[Proxy-middleware]: %v \n", err)
+			log.Printf("[ProxyMiddleware] ERR %v \n", err)
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Abort()
 			return
 		}
 
+		log.Printf("[ProxyMiddleware] proxied request %v", ctx.Request.URL)
 		proxy.ServeHTTP(ctx.Writer, ctx.Request)
 		ctx.Next()
 	}

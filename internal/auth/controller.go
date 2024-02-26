@@ -36,12 +36,6 @@ func (c *Controller) Use() {
 		}
 
 		isAuthorized := c.service.getIsAuthorized(jwtCookie.Value)
-		if err != nil {
-			log.Println(err)
-			ctx.Writer.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		ctx.JSON(http.StatusOK, isAuthorized)
 	})
 

@@ -34,13 +34,21 @@ func (c *Controller) Use() {
 			ctx.Abort()
 			return
 		}
+
 		isAuthorized := c.service.getIsAuthorized(jwtCookie.Value)
+		if err != nil {
+			log.Println(err)
+			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		ctx.JSON(http.StatusOK, isAuthorized)
 	})
 
 	c.authGroup.POST("sign-up", func(ctx *gin.Context) {
 		token, err := c.service.signUp(ctx.Request)
 		if err != nil {
+			log.Println(err)
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}

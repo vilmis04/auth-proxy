@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/vilmis04/auth-proxy/internal/auth"
@@ -26,6 +27,7 @@ func init() {
 
 func main() {
 	server := gin.Default()
+	server.Use(cors.Default())
 	apiRoutes := server.Group("api")
 	auth.NewController(apiRoutes).Use()
 	server.Use(proxy.AuthMiddleware(), proxy.ProxyMiddleware())

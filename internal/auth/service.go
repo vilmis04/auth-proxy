@@ -74,7 +74,7 @@ func (s *Service) signUp(request *http.Request) (*string, error) {
 }
 
 func (s *Service) checkUser(body *loginRequest) error {
-	user, err := s.Repo.getUser(body.Username, body.Password)
+	user, err := s.Repo.getUser(body.Username)
 	if err != nil {
 		return err
 	}

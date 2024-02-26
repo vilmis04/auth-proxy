@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"log"
 	"net/http"
 	"os"
 
@@ -28,7 +29,9 @@ func (c *Controller) Use() {
 	c.authGroup.GET("is-authorized", func(ctx *gin.Context) {
 		jwtCookie, err := ctx.Request.Cookie(accessToken.ACCESS_TOKEN)
 		if err != nil {
-			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			log.Printf("[/is-authorized] ERR: %v", err)
+			ctx.Writer.WriteHeader(http.StatusUnauthorized)
+			ctx.Abort()
 			return
 		}
 		isAuthorized := c.service.getIsAuthorized(jwtCookie.Value)
@@ -48,7 +51,9 @@ func (c *Controller) Use() {
 	c.authGroup.POST("login", func(ctx *gin.Context) {
 		token, err := c.service.login(ctx.Request)
 		if err != nil {
+			log.Printf("[/login] ERR: %v", err)
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Abort()
 			return
 		}
 		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)

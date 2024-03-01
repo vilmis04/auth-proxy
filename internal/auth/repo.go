@@ -24,7 +24,7 @@ func (r *Repo) GetUserList() (*[]string, error) {
 	}
 	defer db.Close()
 
-	query := fmt.Sprintf(`SELECT name FROM %v`, r.Table)
+	query := fmt.Sprintf(`SELECT username FROM %v`, r.Table)
 	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
@@ -56,10 +56,16 @@ func (r *Repo) createUser(body signUpRequest) error {
 	}
 	defer db.Close()
 
+	hashedPassword, err := HashPassword(body.Password)
+	if err != nil {
+		return fmt.Errorf("hashing: %v", err)
+	}
+
+	// TODO: fix user creation
 	query := fmt.Sprintf(`
 	INSERT INTO %v
 	VALUES username=$1, password=$2`, r.Table)
-	_, err = db.Exec(query, html.EscapeString(body.Username), html.EscapeString(body.Password))
+	_, err = db.Exec(query, html.EscapeString(body.Username), hashedPassword)
 	if err != nil {
 		return err
 	}

@@ -52,22 +52,22 @@ func (s *Service) signUp(request *http.Request) (*string, error) {
 	var body signUpRequest
 	err := json.NewDecoder(request.Body).Decode(&body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("JSON err: %v", err)
 	}
 
 	err = s.validateSignUpRequest(body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("validation err: %v", err)
 	}
 
 	err = s.Repo.createUser(body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("user creation err: %v", err)
 	}
 
 	token, err := accessToken.Create(body.Username)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("access token err: %v", err)
 	}
 
 	return token, nil

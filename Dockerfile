@@ -1,10 +1,10 @@
-FROM golang:1.21.5-alpine as builder
+FROM golang:1.22.0-alpine as builder
 
 WORKDIR /app
 
 COPY . .
 
-RUN go build -o /bin/auth-proxy ./cmd/app
+RUN go build -o ./bin/auth-proxy ./cmd/app
 
 FROM alpine:latest
 

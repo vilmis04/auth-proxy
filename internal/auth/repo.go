@@ -63,8 +63,8 @@ func (r *Repo) createUser(body signUpRequest) error {
 
 	// TODO: fix user creation
 	query := fmt.Sprintf(`
-	INSERT INTO %v
-	VALUES username=$1, password=$2`, r.Table)
+	INSERT INTO %v (username, password)
+	VALUES ($1, $2)`, r.Table)
 	_, err = db.Exec(query, html.EscapeString(body.Username), hashedPassword)
 	if err != nil {
 		return err

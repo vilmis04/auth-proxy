@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"cmp"
 	"log"
 	"net/http"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 const MONTH int = 30 * 24 * 3600
 
-var BASE_URL = os.Getenv("BASE_URL")
+var BASE_URL = cmp.Or(os.Getenv("BASE_URL"), "localhost")
 
 type Controller struct {
 	service   *Service
@@ -36,7 +37,14 @@ func (c *Controller) Use() {
 		}
 
 		isAuthorized := c.service.getIsAuthorized(jwtCookie.Value)
-		ctx.JSON(http.StatusOK, isAuthorized)
+		var status int
+		if isAuthorized {
+			status = http.StatusOK
+		} else {
+			status = http.StatusUnauthorized
+		}
+
+		ctx.Writer.WriteHeader(status)
 	})
 
 	c.authGroup.POST("sign-up", func(ctx *gin.Context) {

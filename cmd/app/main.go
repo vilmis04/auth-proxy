@@ -27,7 +27,11 @@ func init() {
 
 func main() {
 	server := gin.Default()
-	server.Use(cors.Default())
+	config := cors.DefaultConfig()
+	config.AllowCredentials = true
+	// TODO: add allowed origin to env var
+	config.AllowOrigins = []string{"http://localhost:3000"}
+	server.Use(cors.New(config))
 	apiRoutes := server.Group("api")
 	auth.NewController(apiRoutes).Use()
 	server.Use(proxy.AuthMiddleware(), proxy.ProxyMiddleware())

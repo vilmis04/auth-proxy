@@ -1,9 +1,8 @@
--- Create auth table
-CREATE DATABASE IF NOT EXISTS "auth_proxy";
+CREATE DATABASE auth;
 
-CREATE TABLE IF NOT EXISTS "auth" (
+CREATE TABLE "auth" (
   "id" serial NOT NULL,
   PRIMARY KEY ("id"),
-  "username" character varying NOT NULL,
-  "password" bit varying NOT NULL
+  "username" VARCHAR(50) UNIQUE NOT NULL,
+  "password" TEXT NOT NULL
 );

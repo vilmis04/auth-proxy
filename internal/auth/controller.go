@@ -19,6 +19,10 @@ type Controller struct {
 	authGroup *gin.RouterGroup
 }
 
+type TokenResponse struct {
+	token string `json:"token"`
+}
+
 func NewController(apiGroup *gin.RouterGroup) *Controller {
 	return &Controller{
 		service:   NewService(),
@@ -56,7 +60,7 @@ func (c *Controller) Use() {
 		}
 
 		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
-		ctx.Writer.WriteHeader(http.StatusCreated)
+		ctx.JSON(http.StatusCreated, TokenResponse{token: *token})
 	})
 
 	c.authGroup.POST("login", func(ctx *gin.Context) {
@@ -69,7 +73,7 @@ func (c *Controller) Use() {
 		}
 
 		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
-		ctx.Writer.WriteHeader(http.StatusOK)
+		ctx.JSON(http.StatusOK, TokenResponse{token: *token})
 	})
 
 	c.authGroup.POST("logout", func(ctx *gin.Context) {

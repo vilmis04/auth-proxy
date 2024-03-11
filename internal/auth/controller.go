@@ -20,7 +20,7 @@ type Controller struct {
 }
 
 type TokenResponse struct {
-	token string `json:"token"`
+	Token string `json:"token"`
 }
 
 func NewController(apiGroup *gin.RouterGroup) *Controller {
@@ -31,18 +31,18 @@ func NewController(apiGroup *gin.RouterGroup) *Controller {
 }
 
 func (c *Controller) Use() {
-	c.authGroup.GET("is-authorized", func(ctx *gin.Context) {
+	c.authGroup.GET("is-authenticated", func(ctx *gin.Context) {
 		jwtCookie, err := ctx.Request.Cookie(accessToken.ACCESS_TOKEN)
 		if err != nil {
-			log.Printf("[Controller] /is-authorized ERR: %v", err)
+			log.Printf("[Controller] /is-authenticated ERR: %v", err)
 			ctx.Writer.WriteHeader(http.StatusUnauthorized)
 			ctx.Abort()
 			return
 		}
 
-		isAuthorized := c.service.getIsAuthorized(jwtCookie.Value)
+		isAuthenticated := c.service.getIsAuthenticated(jwtCookie.Value)
 		var status int
-		if isAuthorized {
+		if isAuthenticated {
 			status = http.StatusOK
 		} else {
 			status = http.StatusUnauthorized
@@ -60,7 +60,7 @@ func (c *Controller) Use() {
 		}
 
 		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
-		ctx.JSON(http.StatusCreated, TokenResponse{token: *token})
+		ctx.JSON(http.StatusCreated, TokenResponse{Token: *token})
 	})
 
 	c.authGroup.POST("login", func(ctx *gin.Context) {
@@ -73,7 +73,7 @@ func (c *Controller) Use() {
 		}
 
 		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
-		ctx.JSON(http.StatusOK, TokenResponse{token: *token})
+		ctx.JSON(http.StatusOK, TokenResponse{Token: *token})
 	})
 
 	c.authGroup.POST("logout", func(ctx *gin.Context) {

@@ -19,7 +19,7 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) getIsAuthorized(token string) bool {
+func (s *Service) getIsAuthenticated(token string) bool {
 	user, err := accessToken.Validate(token)
 	if err != nil {
 		return false

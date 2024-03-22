@@ -13,6 +13,7 @@ import (
 const MONTH int = 30 * 24 * 3600
 
 var BASE_URL = cmp.Or(os.Getenv("BASE_URL"), "localhost")
+var PATH = "/"
 
 type Controller struct {
 	service   *Service
@@ -59,7 +60,7 @@ func (c *Controller) Use() {
 			return
 		}
 
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, PATH, BASE_URL, true, true)
 		ctx.JSON(http.StatusCreated, TokenResponse{Token: *token})
 	})
 
@@ -72,12 +73,12 @@ func (c *Controller) Use() {
 			return
 		}
 
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, "/", BASE_URL, true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, PATH, BASE_URL, true, true)
 		ctx.JSON(http.StatusOK, TokenResponse{Token: *token})
 	})
 
 	c.authGroup.POST("logout", func(ctx *gin.Context) {
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, "", 0, "/", BASE_URL, true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, "", 0, PATH, BASE_URL, true, true)
 		ctx.Writer.WriteHeader(http.StatusOK)
 	})
 }

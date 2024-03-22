@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -15,7 +16,9 @@ const USER = "user"
 
 // https://pkg.go.dev/net/http/httputil#NewSingleHostReverseProxy
 func NewReverseProxy() (*httputil.ReverseProxy, error) {
-	url, err := url.Parse(os.Getenv("SERVICE_URL"))
+	proxyTarget := os.Getenv("SERVICE_URL")
+	fmt.Printf("PROXY TARGET: %v\n", proxyTarget)
+	url, err := url.Parse(proxyTarget)
 	if err != nil {
 		return nil, err
 	}

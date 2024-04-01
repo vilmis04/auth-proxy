@@ -2,6 +2,7 @@ package auth
 
 import (
 	"cmp"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -49,7 +50,7 @@ func (c *Controller) Use() {
 			status = http.StatusUnauthorized
 		}
 
-		ctx.Writer.WriteHeader(status)
+		ctx.String(status, fmt.Sprintf("%v", isAuthenticated))
 	})
 
 	c.authGroup.POST("sign-up", func(ctx *gin.Context) {

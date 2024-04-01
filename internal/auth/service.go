@@ -40,7 +40,6 @@ func (s *Service) validateSignUpRequest(body signUpRequest) error {
 	if err != nil {
 		return err
 	}
-
 	if slices.Contains(*names, body.Username) {
 		return fmt.Errorf("username %v is already taken", body.Username)
 	}

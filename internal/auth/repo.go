@@ -61,7 +61,6 @@ func (r *Repo) createUser(body signUpRequest) error {
 		return fmt.Errorf("hashing: %v", err)
 	}
 
-	// TODO: fix user creation
 	query := fmt.Sprintf(`
 	INSERT INTO %v (username, password)
 	VALUES ($1, $2)`, r.Table)

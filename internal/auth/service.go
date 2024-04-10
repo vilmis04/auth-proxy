@@ -19,16 +19,16 @@ func NewService() *Service {
 	}
 }
 
-func (s *Service) getIsAuthenticated(token string) bool {
+func (s *Service) getIsAuthenticated(token string) (*string, error) {
 	user, err := accessToken.Validate(token)
 	if err != nil {
-		return false
+		return nil, err
 	}
 	if user == nil || *user == "" {
-		return false
+		return nil, fmt.Errorf("user not found")
 	}
 
-	return true
+	return user, nil
 }
 
 func (s *Service) validateSignUpRequest(body signUpRequest) error {

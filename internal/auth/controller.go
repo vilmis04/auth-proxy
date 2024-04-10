@@ -2,7 +2,6 @@ package auth
 
 import (
 	"cmp"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -42,15 +41,17 @@ func (c *Controller) Use() {
 			return
 		}
 
-		isAuthenticated := c.service.getIsAuthenticated(jwtCookie.Value)
 		var status int
-		if isAuthenticated {
+		username := ""
+		user, _ := c.service.getIsAuthenticated(jwtCookie.Value)
+		if user != nil {
 			status = http.StatusOK
+			username = *user
 		} else {
 			status = http.StatusUnauthorized
 		}
 
-		ctx.String(status, fmt.Sprintf("%v", isAuthenticated))
+		ctx.String(status, username)
 	})
 
 	c.authGroup.POST("sign-up", func(ctx *gin.Context) {

@@ -55,10 +55,17 @@ func (c *Controller) Use() {
 	})
 
 	c.authGroup.POST("sign-up", func(ctx *gin.Context) {
-		token, err := c.service.signUp(ctx.Request)
-		if err != nil {
-			log.Printf("[Controller] /sign-up ERR: %v", err)
+		token, serverErr, clientErr := c.service.signUp(ctx.Request)
+		if serverErr != nil {
+			log.Printf("[Controller] /sign-up ERR: %v", serverErr)
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Abort()
+			return
+		}
+		if clientErr != nil {
+			log.Printf("[Controller] /sign-up ERR: %v", clientErr)
+			ctx.String(http.StatusBadRequest, clientErr.Error())
+			ctx.Abort()
 			return
 		}
 
@@ -67,10 +74,16 @@ func (c *Controller) Use() {
 	})
 
 	c.authGroup.POST("login", func(ctx *gin.Context) {
-		token, err := c.service.login(ctx.Request)
-		if err != nil {
-			log.Printf("[Controller] /login ERR: %v", err)
-			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+		token, serverErr, clientErr := c.service.login(ctx.Request)
+		if serverErr != nil {
+			log.Printf("[Controller] /login ERR: %v\n", serverErr)
+			ctx.String(http.StatusInternalServerError, serverErr.Error())
+			ctx.Abort()
+			return
+		}
+		if clientErr != nil {
+			log.Printf("[Controller] /login ERR: %v\n", clientErr)
+			ctx.String(http.StatusUnauthorized, clientErr.Error())
 			ctx.Abort()
 			return
 		}

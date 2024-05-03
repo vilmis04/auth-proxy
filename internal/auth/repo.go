@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"html"
+	"log"
 
 	"github.com/vilmis04/auth-proxy/internal/storage"
 )
@@ -88,7 +89,8 @@ func (r *Repo) getUser(username string) (*User, error) {
 	row := db.QueryRow(query, username)
 	err = row.Scan(&id, &(user.Username), &(user.Password))
 	if err != nil {
-		return nil, err
+		log.Printf("[Repo] getUser %v ERR: %v\n", username, err)
+		return nil, fmt.Errorf("incorrect username or password")
 	}
 
 	return &user, nil

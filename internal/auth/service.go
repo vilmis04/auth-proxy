@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 
@@ -47,29 +48,29 @@ func (s *Service) validateSignUpRequest(body signUpRequest) error {
 	return nil
 }
 
-func (s *Service) signUp(request *http.Request) (*string, error) {
+func (s *Service) signUp(request *http.Request) (token *string, serverErr error, clientErr error) {
 	var body signUpRequest
 	err := json.NewDecoder(request.Body).Decode(&body)
 	if err != nil {
-		return nil, fmt.Errorf("JSON err: %v", err)
+		return nil, fmt.Errorf("JSON err: %v", err), nil
 	}
 
 	err = s.validateSignUpRequest(body)
 	if err != nil {
-		return nil, fmt.Errorf("validation err: %v", err)
+		return nil, nil, err
 	}
 
 	err = s.Repo.createUser(body)
 	if err != nil {
-		return nil, fmt.Errorf("user creation err: %v", err)
+		return nil, fmt.Errorf("user creation err: %v", err), nil
 	}
 
-	token, err := accessToken.Create(body.Username)
+	token, err = accessToken.Create(body.Username)
 	if err != nil {
-		return nil, fmt.Errorf("access token err: %v", err)
+		return nil, fmt.Errorf("access token err: %v", err), nil
 	}
 
-	return token, nil
+	return token, nil, nil
 }
 
 func (s *Service) checkUser(body *loginRequest) error {
@@ -81,22 +82,23 @@ func (s *Service) checkUser(body *loginRequest) error {
 	return ValidatePassword(body.Password, user.Password)
 }
 
-func (s *Service) login(request *http.Request) (*string, error) {
+func (s *Service) login(request *http.Request) (token *string, serverErr error, clientErr error) {
 	var body loginRequest
 	err := json.NewDecoder(request.Body).Decode(&body)
 	if err != nil {
-		return nil, err
+		return nil, err, nil
 	}
 
 	err = s.checkUser(&body)
 	if err != nil {
-		return nil, err
+		log.Printf("[Service] login ERR: %v\n", err)
+		return nil, nil, fmt.Errorf("incorrect username or password")
 	}
 
-	token, err := accessToken.Create(body.Username)
+	token, err = accessToken.Create(body.Username)
 	if err != nil {
-		return nil, err
+		return nil, err, nil
 	}
 
-	return token, nil
+	return token, nil, nil
 }

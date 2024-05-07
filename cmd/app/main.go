@@ -30,7 +30,7 @@ func main() {
 	config := cors.DefaultConfig()
 	config.AllowCredentials = true
 	// TODO: add allowed origin to env var
-	config.AllowOrigins = []string{"http://localhost:3000"}
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:3300", "https://voteforthewinners.eu"}
 	server.Use(cors.New(config))
 	apiRoutes := server.Group("api")
 	auth.NewController(apiRoutes).Use()

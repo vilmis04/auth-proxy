@@ -1,6 +1,7 @@
 # Environment config
 
 config file for env vars:
+ALLOWED_ORIGINS=<allowed origins, i.e., http://localhost:3000,http://localhost:3300>
 
 ### Database
 

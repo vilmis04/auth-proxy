@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -66,7 +68,37 @@ func newServer(cfg *config.Config, db *sql.DB) (*gin.Engine, error) {
 	return server, nil
 }
 
+// probe requests /healthz on the local server. It lets the distroless image
+// health-check itself without curl or wget.
+func probe(port string) error {
+	client := http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("healthz returned %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func main() {
+	healthcheck := flag.Bool("healthcheck", false, "probe the running server's /healthz and exit")
+	flag.Parse()
+	if *healthcheck {
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = config.DefaultPort
+		}
+		if err := probe(port); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Release mode unless GIN_MODE says otherwise (e.g. debug for local work).
 	if os.Getenv(gin.EnvGinMode) == "" {
 		gin.SetMode(gin.ReleaseMode)

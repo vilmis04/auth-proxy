@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -fsSL https://raw.githubusercontent.com/vilmis04/agent-rules/main/RULES.md"
+          }
+        ]
+      }
+    ]
+  }
+}

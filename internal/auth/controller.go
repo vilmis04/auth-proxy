@@ -1,12 +1,10 @@
 package auth
 
 import (
-	"cmp"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vilmis04/auth-proxy/internal/accessToken"
@@ -15,8 +13,7 @@ import (
 // maxBodyBytes caps JSON request bodies on the auth endpoints.
 const maxBodyBytes = 4 << 10
 
-var BASE_URL = cmp.Or(os.Getenv("BASE_URL"), "localhost")
-var PATH = "/"
+const PATH = "/"
 
 // Limits are optional middlewares for the credential endpoints.
 type Limits struct {
@@ -28,11 +25,14 @@ type Controller struct {
 	service   *Service
 	authGroup *gin.RouterGroup
 	limits    Limits
+	// cookieDomain is the Domain attribute of the access token cookie.
+	// Empty means a host-only cookie, which is what a same-origin deployment wants.
+	cookieDomain string
 }
 
 func noop(*gin.Context) {}
 
-func NewController(apiGroup *gin.RouterGroup, service *Service, limits Limits) *Controller {
+func NewController(apiGroup *gin.RouterGroup, service *Service, limits Limits, cookieDomain string) *Controller {
 	if limits.Login == nil {
 		limits.Login = noop
 	}
@@ -44,11 +44,21 @@ func NewController(apiGroup *gin.RouterGroup, service *Service, limits Limits) *
 		service:   service,
 		authGroup: apiGroup.Group("auth"),
 		limits:    limits,
+
+		cookieDomain: cookieDomain,
 	}
 }
 
 func (c *Controller) maxAge() int {
 	return int(c.service.signer.TTL().Seconds())
+}
+
+// setAccessCookie writes (or, with a negative maxAge, clears) the access token
+// cookie. Domain, path and SameSite must be identical when setting and
+// clearing, otherwise browsers keep the old cookie.
+func (c *Controller) setAccessCookie(ctx *gin.Context, value string, maxAge int) {
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie(accessToken.ACCESS_TOKEN, value, maxAge, PATH, c.cookieDomain, true, true)
 }
 
 func decodeBody(ctx *gin.Context, dst any) error {
@@ -105,7 +115,7 @@ func (c *Controller) Use() {
 			return
 		}
 
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, c.maxAge(), PATH, BASE_URL, true, true)
+		c.setAccessCookie(ctx, *token, c.maxAge())
 		ctx.JSON(http.StatusCreated, UserResponse{Username: body.Username})
 	})
 
@@ -122,12 +132,12 @@ func (c *Controller) Use() {
 			return
 		}
 
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, c.maxAge(), PATH, BASE_URL, true, true)
+		c.setAccessCookie(ctx, *token, c.maxAge())
 		ctx.JSON(http.StatusOK, UserResponse{Username: body.Username})
 	})
 
 	c.authGroup.POST("logout", func(ctx *gin.Context) {
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, "", -1, PATH, BASE_URL, true, true)
+		c.setAccessCookie(ctx, "", -1)
 		ctx.Writer.WriteHeader(http.StatusOK)
 	})
 }

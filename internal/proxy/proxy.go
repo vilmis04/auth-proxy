@@ -26,7 +26,7 @@ func NewReverseProxy() (*httputil.ReverseProxy, error) {
 	return httputil.NewSingleHostReverseProxy(url), nil
 }
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(signer *accessToken.Signer) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		cookie, err := ctx.Request.Cookie(accessToken.ACCESS_TOKEN)
 		if err != nil {
@@ -36,7 +36,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		user, err := accessToken.Validate(cookie.Value)
+		user, err := signer.Validate(cookie.Value)
 		if err != nil {
 			log.Printf("[AuthMiddleware] ERR %v \n", err)
 			ctx.Writer.WriteHeader(http.StatusUnauthorized)

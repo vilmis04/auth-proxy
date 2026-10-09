@@ -1,3 +1,13 @@
+.git
+.github
+.claude
+.vscode
+.idea
+.env
+.env.*
+bin/
+*.md
+Makefile
 Dockerfile
 .dockerignore
-bin/
+scripts/

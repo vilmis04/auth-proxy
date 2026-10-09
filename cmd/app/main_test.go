@@ -132,3 +132,31 @@ func TestCrossOriginPostIsRejected(t *testing.T) {
 		t.Errorf("expected 403, got %d", rec.Code)
 	}
 }
+
+func TestProbe(t *testing.T) {
+	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/healthz" {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer ok.Close()
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer failing.Close()
+
+	portOf := func(rawURL string) string {
+		u, _ := url.Parse(rawURL)
+		return u.Port()
+	}
+	if err := probe(portOf(ok.URL)); err != nil {
+		t.Errorf("expected healthy server to pass, got %v", err)
+	}
+	if err := probe(portOf(failing.URL)); err == nil {
+		t.Error("expected 503 to fail the probe")
+	}
+	ok.Close()
+	if err := probe(portOf(ok.URL)); err == nil {
+		t.Error("expected closed server to fail the probe")
+	}
+}

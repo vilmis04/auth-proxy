@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultPort     = "8080"
+	DefaultPort     = "8080"
 	defaultTokenTTL = 24 * time.Hour
 )
 
@@ -42,7 +42,7 @@ func Load(getenv func(string) string) (*Config, error) {
 	}
 
 	cfg := &Config{
-		Port:           defaultPort,
+		Port:           DefaultPort,
 		JWTTTL:         defaultTokenTTL,
 		JWTKey:         required("JWT_KEY"),
 		DatabaseURL:    required("DATABASE_URL"),

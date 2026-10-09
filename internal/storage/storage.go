@@ -1,35 +1,48 @@
 package storage
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
-type Storage struct {
-	Table      string
-	connString string
-}
+const (
+	connectAttempts = 10
+	connectDelay    = 2 * time.Second
+)
 
-func New(table string) *Storage {
-	return &Storage{
-		Table: table,
-		connString: fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=disable",
-			os.Getenv("POSTGRES_HOST"),
-			os.Getenv("POSTGRES_PORT"),
-			os.Getenv("POSTGRES_USER"),
-			os.Getenv("POSTGRES_PASSWORD"),
-			os.Getenv("POSTGRES_DB")),
-	}
-}
-
-func (s *Storage) ConnectToDB() (*sql.DB, error) {
-	db, err := sql.Open("postgres", s.connString)
+// Open creates the shared connection pool and waits for the database to
+// answer, so a Postgres container that is still starting does not crash-loop
+// the app. Call it once at startup and close the pool on shutdown.
+func Open(ctx context.Context, databaseURL string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
 
-	return db, nil
+	var pingErr error
+	for attempt := 1; attempt <= connectAttempts; attempt++ {
+		pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		pingErr = db.PingContext(pingCtx)
+		cancel()
+		if pingErr == nil {
+			return db, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			db.Close()
+			return nil, ctx.Err()
+		case <-time.After(connectDelay):
+		}
+	}
+	db.Close()
+
+	return nil, fmt.Errorf("database not reachable after %d attempts: %w", connectAttempts, pingErr)
 }

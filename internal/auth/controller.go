@@ -2,6 +2,8 @@ package auth
 
 import (
 	"cmp"
+	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -10,25 +12,61 @@ import (
 	"github.com/vilmis04/auth-proxy/internal/accessToken"
 )
 
-const MONTH int = 30 * 24 * 3600
+// maxBodyBytes caps JSON request bodies on the auth endpoints.
+const maxBodyBytes = 4 << 10
 
 var BASE_URL = cmp.Or(os.Getenv("BASE_URL"), "localhost")
 var PATH = "/"
 
+// Limits are optional middlewares for the credential endpoints.
+type Limits struct {
+	Login  gin.HandlerFunc
+	SignUp gin.HandlerFunc
+}
+
 type Controller struct {
 	service   *Service
 	authGroup *gin.RouterGroup
+	limits    Limits
 }
 
-type TokenResponse struct {
-	Token string `json:"token"`
-}
+func noop(*gin.Context) {}
 
-func NewController(apiGroup *gin.RouterGroup) *Controller {
-	return &Controller{
-		service:   NewService(),
-		authGroup: apiGroup.Group("auth"),
+func NewController(apiGroup *gin.RouterGroup, service *Service, limits Limits) *Controller {
+	if limits.Login == nil {
+		limits.Login = noop
 	}
+	if limits.SignUp == nil {
+		limits.SignUp = noop
+	}
+
+	return &Controller{
+		service:   service,
+		authGroup: apiGroup.Group("auth"),
+		limits:    limits,
+	}
+}
+
+func (c *Controller) maxAge() int {
+	return int(c.service.signer.TTL().Seconds())
+}
+
+func decodeBody(ctx *gin.Context, dst any) error {
+	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxBodyBytes)
+	return json.NewDecoder(ctx.Request.Body).Decode(dst)
+}
+
+// fail writes the response for an error returned by the service.
+func fail(ctx *gin.Context, route string, err error) {
+	var ce *ClientError
+	if errors.As(err, &ce) {
+		log.Printf("[Controller] %v client ERR: %v", route, err)
+		ctx.String(ce.Status, ce.Msg)
+	} else {
+		log.Printf("[Controller] %v ERR: %v", route, err)
+		ctx.Status(http.StatusInternalServerError)
+	}
+	ctx.Abort()
 }
 
 func (c *Controller) Use() {
@@ -54,46 +92,42 @@ func (c *Controller) Use() {
 		ctx.String(status, username)
 	})
 
-	c.authGroup.POST("sign-up", func(ctx *gin.Context) {
-		token, serverErr, clientErr := c.service.signUp(ctx.Request)
-		if serverErr != nil {
-			log.Printf("[Controller] /sign-up ERR: %v", serverErr)
-			ctx.Writer.WriteHeader(http.StatusInternalServerError)
-			ctx.Abort()
-			return
-		}
-		if clientErr != nil {
-			log.Printf("[Controller] /sign-up ERR: %v", clientErr)
-			ctx.String(http.StatusBadRequest, clientErr.Error())
-			ctx.Abort()
+	c.authGroup.POST("sign-up", c.limits.SignUp, func(ctx *gin.Context) {
+		var body signUpRequest
+		if err := decodeBody(ctx, &body); err != nil {
+			fail(ctx, "/sign-up", clientErr(http.StatusBadRequest, "invalid request body"))
 			return
 		}
 
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, PATH, BASE_URL, true, true)
-		ctx.JSON(http.StatusCreated, TokenResponse{Token: *token})
+		token, err := c.service.signUp(body)
+		if err != nil {
+			fail(ctx, "/sign-up", err)
+			return
+		}
+
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, c.maxAge(), PATH, BASE_URL, true, true)
+		ctx.JSON(http.StatusCreated, UserResponse{Username: body.Username})
 	})
 
-	c.authGroup.POST("login", func(ctx *gin.Context) {
-		token, serverErr, clientErr := c.service.login(ctx.Request)
-		if serverErr != nil {
-			log.Printf("[Controller] /login ERR: %v\n", serverErr)
-			ctx.String(http.StatusInternalServerError, serverErr.Error())
-			ctx.Abort()
-			return
-		}
-		if clientErr != nil {
-			log.Printf("[Controller] /login ERR: %v\n", clientErr)
-			ctx.String(http.StatusUnauthorized, clientErr.Error())
-			ctx.Abort()
+	c.authGroup.POST("login", c.limits.Login, func(ctx *gin.Context) {
+		var body loginRequest
+		if err := decodeBody(ctx, &body); err != nil {
+			fail(ctx, "/login", clientErr(http.StatusBadRequest, "invalid request body"))
 			return
 		}
 
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, MONTH, PATH, BASE_URL, true, true)
-		ctx.JSON(http.StatusOK, TokenResponse{Token: *token})
+		token, err := c.service.login(body)
+		if err != nil {
+			fail(ctx, "/login", err)
+			return
+		}
+
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, *token, c.maxAge(), PATH, BASE_URL, true, true)
+		ctx.JSON(http.StatusOK, UserResponse{Username: body.Username})
 	})
 
 	c.authGroup.POST("logout", func(ctx *gin.Context) {
-		ctx.SetCookie(accessToken.ACCESS_TOKEN, "", 0, PATH, BASE_URL, true, true)
+		ctx.SetCookie(accessToken.ACCESS_TOKEN, "", -1, PATH, BASE_URL, true, true)
 		ctx.Writer.WriteHeader(http.StatusOK)
 	})
 }

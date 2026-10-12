@@ -1,12 +1,16 @@
 package auth
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
-	"html"
-	"log"
 
+	"github.com/lib/pq"
 	"github.com/vilmis04/auth-proxy/internal/storage"
 )
+
+// pgUniqueViolation is the Postgres error code for unique_violation.
+const pgUniqueViolation = "23505"
 
 type Repo struct {
 	storage.Storage
@@ -18,62 +22,28 @@ func NewRepo() *Repo {
 	}
 }
 
-func (r *Repo) GetUserList() (*[]string, error) {
-	db, err := r.ConnectToDB()
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-
-	query := fmt.Sprintf(`SELECT username FROM %v`, r.Table)
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var names []string
-	for rows.Next() {
-		var name string
-		err := rows.Scan(&name)
-		if err != nil {
-			return nil, err
-		}
-
-		names = append(names, name)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return &names, nil
-}
-
-func (r *Repo) createUser(body signUpRequest) error {
+// CreateUser stores the username exactly as given. The UNIQUE constraint on
+// the column is the source of truth for duplicate detection.
+func (r *Repo) CreateUser(username string, passwordHash []byte) error {
 	db, err := r.ConnectToDB()
 	if err != nil {
 		return err
 	}
 	defer db.Close()
-
-	hashedPassword, err := HashPassword(body.Password)
-	if err != nil {
-		return fmt.Errorf("hashing: %v", err)
-	}
 
 	query := fmt.Sprintf(`
 	INSERT INTO %v (username, password)
 	VALUES ($1, $2)`, r.Table)
-	_, err = db.Exec(query, html.EscapeString(body.Username), hashedPassword)
-	if err != nil {
-		return err
+	_, err = db.Exec(query, username, passwordHash)
+	var pgErr *pq.Error
+	if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
+		return ErrUsernameTaken
 	}
 
-	return nil
+	return err
 }
 
-func (r *Repo) getUser(username string) (*User, error) {
+func (r *Repo) GetUser(username string) (*User, error) {
 	db, err := r.ConnectToDB()
 	if err != nil {
 		return nil, err
@@ -81,16 +51,16 @@ func (r *Repo) getUser(username string) (*User, error) {
 	defer db.Close()
 
 	query := fmt.Sprintf(`
-	SELECT * FROM %v
+	SELECT username, password FROM %v
 	WHERE username=$1`, r.Table)
 
-	var id int
-	var user User = User{}
-	row := db.QueryRow(query, username)
-	err = row.Scan(&id, &(user.Username), &(user.Password))
+	user := User{}
+	err = db.QueryRow(query, username).Scan(&user.Username, &user.Password)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrUserNotFound
+	}
 	if err != nil {
-		log.Printf("[Repo] getUser %v ERR: %v\n", username, err)
-		return nil, fmt.Errorf("incorrect username or password")
+		return nil, err
 	}
 
 	return &user, nil
